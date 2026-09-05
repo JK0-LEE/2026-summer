@@ -7,14 +7,14 @@ using namespace std;
 #define all(x) x.begin(), x.end()
 #define cout_line cout<<"line"<<__LINE__<<endl
 #define cout_val(x) cout<<#x<<": "<<x<<endl
-#pragma GCC optimize("Ofast")
-#pragma GCC target("avx2")
+//#pragma GCC optimize("Ofast")
+//#pragma GCC target("avx2")
 const long long mod=1e9+7;
 
 struct SegTree {
     int n = 0;
     vector<int>  val;   // 節點負責的整段若同值，那個值是什麼
-    vector<char> lazy;  // 這一整段都是 val，但子節點還不知道
+    vector<int> lazy;  // 這一整段都是 val，但子節點還不知道
 
     // 建立長度 n 的時間軸，所有格子初始為 0。
     void init(int size) {
@@ -29,15 +29,31 @@ struct SegTree {
     void pushDown(int node) {
         // TODO: 實作推標記
         //   1. 若 lazy[node] 為假，直接返回
+        if(lazy[node]==0) return;
         //   2. 把 val[node] 複製給 2*node 與 2*node+1，並把它們的 lazy 設為真
+        val[2*node] = val[node];
+        val[2*node+1] = val[node];
+        lazy[2*node]=true;
+        lazy[2*node+1] = true;
         //   3. 清掉 lazy[node]
+        lazy[node] = false;
     }
 
     // 內部遞迴：node 負責 [l, r)，要把 [ql, qr) 設成 c。
     void assignImpl(int node, int l, int r, int ql, int qr, int c) {
         // TODO: 實作區間賦值
         //   1. 不相交（qr <= l 或 r <= ql）→ 返回
+        if(qr<=l||r<=ql)return;
         //   2. 完整包含（ql <= l 且 r <= qr）→ 設 val 與 lazy，返回（不要往下走）
+        if(ql<=l &&r<=qr){
+            val[node]=c;
+            lazy[node]=c;
+            return;
+        }
+        pushDown(node);
+        int mid = (l+r)/2;
+        assignImpl(node*2,l, mid,ql, qr, c);
+        assignImpl(node*2+1,mid, r,ql, qr, c);
         //   3. 其餘 → pushDown 之後遞迴左右兩邊
     }
 
@@ -45,6 +61,15 @@ struct SegTree {
     int queryImpl(int node, int l, int r, int pos) {
         // TODO: 實作單點查詢
         //   1. 走到葉子（r - l == 1）→ 回傳 val[node]
+        if(r-l==1) return val[node];
+        pushDown(node);
+        int mid = (l+r)/2;
+        if(pos<mid){
+            return queryImpl(node*2,l, mid, pos);
+        }
+        else{
+            return queryImpl(node*2+1, mid, r, pos);
+        }
         //   2. 否則 pushDown，再依 pos 與 mid 的關係往左或往右
         return 0;
     }
